@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}Detail laporan · OpsInsight{% endblock %}
+{% block heading %}Detail laporan{% endblock %}
+{% block content %}
+<section class="detail-header">
+  <div><a class="back-link" href="{{ url_for('dashboard') }}">← Kembali ke dashboard</a><h2>{{ report['unit'] }}</h2><p>Laporan periode {{ report['report_date'] }}</p></div>
+  <div class="detail-actions"><a class="btn ghost" href="{{ url_for('edit_report', report_id=report['id']) }}">Edit laporan</a>{% if report['source_file'] %}<a class="btn" href="{{ url_for('view_report_file', report_id=report['id']) }}" target="_blank">Buka PDF</a>{% endif %}</div>
+</section>
+<section class="detail-grid">
+  <article><span class="metric-icon purple">◷</span><small>Total hours</small><strong>{{ '{:,.0f}'.format(report['total_hours']) }}</strong><p>Jam operasi tercatat</p></article>
+  <article><span class="metric-icon orange">⛽</span><small>Fuel consumption</small><strong>{{ '{:,.0f}'.format(report['fuel_consumption']) }} L</strong><p>Konsumsi bahan bakar</p></article>
+  <article><span class="metric-icon green">↗</span><small>Productivity</small><strong>{{ '{:,.0f}'.format(report['productivity']) }}</strong><p>Total output laporan</p></article>
+</section>
+<section class="record-card">
+  <div class="record-card-head"><div><h3>Informasi laporan</h3><p>Detail data dan dokumen sumber.</p></div><span class="saved">● Tersimpan</span></div>
+  <dl><div><dt>Tanggal report</dt><dd>{{ report['report_date'] }}</dd></div><div><dt>Unit</dt><dd>{{ report['unit'] }}</dd></div><div><dt>File sumber</dt><dd>{{ report['source_file'].split('_', 1)[1] if report['source_file'] and '_' in report['source_file'] else (report['source_file'] or 'Tidak tersedia') }}</dd></div><div><dt>Ditambahkan</dt><dd>{{ report['created_at'] }}</dd></div></dl>
+</section>
+{% endblock %}

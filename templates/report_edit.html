@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}Edit laporan · OpsInsight{% endblock %}
+{% block heading %}Edit laporan{% endblock %}
+{% block content %}
+<section class="detail-header edit-heading">
+  <div><a class="back-link" href="{{ url_for('view_report', report_id=report['id']) }}">← Kembali ke detail</a><h2>Perbarui data laporan</h2><p>Pastikan nilai sesuai dengan dokumen sumber sebelum disimpan.</p></div>
+</section>
+<form method="post" class="edit-card">
+  <div class="form-grid">
+    <label><span>Tanggal report</span><input name="report_date" value="{{ report['report_date'] }}" required></label>
+    <label><span>Unit</span><input name="unit" value="{{ report['unit'] }}" required></label>
+    <label><span>Total hours</span><input name="total_hours" inputmode="decimal" value="{{ report['total_hours'] }}" required></label>
+    <label><span>Fuel consumption</span><input name="fuel_consumption" inputmode="decimal" value="{{ report['fuel_consumption'] }}" required></label>
+    <label><span>Productivity</span><input name="productivity" inputmode="decimal" value="{{ report['productivity'] }}" required></label>
+  </div>
+  <div class="edit-footer"><a class="btn ghost" href="{{ url_for('view_report', report_id=report['id']) }}">Batal</a><button class="btn" type="submit">Simpan perubahan</button></div>
+</form>
+{% endblock %}

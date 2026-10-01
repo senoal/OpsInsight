@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard · OpsInsight{% endblock %}
+{% block heading %}Ringkasan monitoring{% endblock %}
+{% block content %}
+<section class="page-intro compact"><p>Ikhtisar data hasil ekstraksi laporan yang telah divalidasi.</p></section>
+
+<section class="metrics">
+  <article><span class="metric-icon blue">▤</span><p>Total laporan</p><strong>{{ totals['count'] }}</strong><small>report tersimpan</small></article>
+  <article><span class="metric-icon purple">◷</span><p>Total hours</p><strong>{{ '{:,.0f}'.format(totals['hours']) }}</strong><small>jam operasi</small></article>
+  <article><span class="metric-icon orange">⛽</span><p>Fuel consumption</p><strong>{{ '{:,.0f}'.format(totals['fuel']) }}</strong><small>liter tercatat</small></article>
+  <article><span class="metric-icon green">↗</span><p>Productivity</p><strong>{{ '{:,.0f}'.format(totals['productivity']) }}</strong><small>total output</small></article>
+</section>
+
+<section class="charts">
+  <article class="chart-card trend-card">
+    <div class="card-title"><div><h3>Tren produktivitas</h3><p>Perbandingan output setiap laporan</p></div><span class="chart-unit">Ton material</span></div>
+    {% if trend_rows %}
+    <div class="trend-summary">
+      <div><small>Terakhir</small><strong>{{ '{:,.0f}'.format(latest_productivity) }}</strong></div>
+      <div><small>Rata-rata</small><strong>{{ '{:,.0f}'.format(average_productivity) }}</strong></div>
+      <div><small>Vs. periode lalu</small><strong class="{{ 'trend-up' if productivity_change is not none and productivity_change >= 0 else 'trend-down' }}">{% if productivity_change is not none %}{{ '+' if productivity_change >= 0 else '' }}{{ '%.1f'|format(productivity_change) }}%{% else %}Belum tersedia{% endif %}</strong></div>
+    </div>
+    <div class="trend-plot" role="img" aria-label="Grafik produktivitas berdasarkan laporan">
+      <div class="trend-grid"><i></i><i></i><i></i></div>
+      <div class="trend-bars">
+        {% for row in trend_rows %}
+        <div class="trend-column" title="{{ row['unit'] }} · {{ row['report_date'] }} · {{ '{:,.0f}'.format(row['productivity']) }} ton">
+          <div class="trend-value">{{ '%.1fK'|format(row['productivity'] / 1000) }}</div>
+          <div class="trend-bar" style="height: {{ row['height'] }}%"></div>
+          <strong>{{ row['date_label'] }}</strong>
+          <small>{{ row['unit'] }}</small>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% else %}<p class="empty-chart">Belum ada data untuk divisualisasikan.</p>{% endif %}
+  </article>
+  <article class="chart-card insight-card">
+    <div class="card-title"><div><h3>Wawasan operasional</h3><p>Rekomendasi otomatis dari data terkumpul</p></div><span class="insight-badge">{{ trend_rows|length }} laporan</span></div>
+    <div class="insight-list">
+      {% for insight in insights %}
+      <div class="insight-item {{ insight['tone'] }}">
+        <span class="insight-icon">{{ insight['icon'] }}</span>
+        <div><strong>{{ insight['title'] }}</strong><p>{{ insight['description'] }}</p></div>
+      </div>
+      {% else %}<p class="empty-chart">Tambahkan laporan untuk mendapatkan wawasan operasional.</p>{% endfor %}
+    </div>
+  </article>
+</section>
+
+<section class="data-section">
+  <div class="data-toolbar">
+    <div><h2>Data report</h2><p>{{ filtered_count }} data ditemukan{% if query or selected_unit %} dari {{ totals['count'] }} data{% endif %}</p></div>
+    <form class="filters" method="get" action="{{ url_for('dashboard') }}">
+      <input name="q" value="{{ query }}" aria-label="Cari laporan" placeholder="⌕  Cari unit atau tanggal...">
+      <select name="unit" aria-label="Filter unit" onchange="this.form.submit()">
+        <option value="">Semua unit</option>
+        {% for option in unit_options %}<option value="{{ option['unit'] }}" {{ 'selected' if selected_unit == option['unit'] else '' }}>{{ option['unit'] }}</option>{% endfor %}
+      </select>
+      <button class="filter-button" type="submit">Cari</button>
+      {% if query or selected_unit %}<a class="clear-filter" href="{{ url_for('dashboard') }}" title="Hapus filter">×</a>{% endif %}
+    </form>
+  </div>
+
+  <div class="table-wrap">
+    <table id="reports-table">
+      <thead><tr><th>Tanggal report</th><th>Unit</th><th>Total hours</th><th>Fuel consumption</th><th>Productivity</th><th>Ringkasan</th><th>Status</th><th class="action-heading">Aksi</th></tr></thead>
+      <tbody>
+      {% for row in rows %}
+        <tr>
+          <td>{{ row['report_date'] }}</td>
+          <td><span class="unit-pill">{{ row['unit'] }}</span></td>
+          <td>{{ '{:,.0f}'.format(row['total_hours']) }}</td>
+          <td>{{ '{:,.0f}'.format(row['fuel_consumption']) }} L</td>
+          <td>{{ '{:,.0f}'.format(row['productivity']) }}</td>
+          <td><button class="summary-toggle" type="button" aria-expanded="false" aria-controls="summary-{{ row['id'] }}" data-summary="summary-{{ row['id'] }}">Lihat ringkasan <span>⌄</span></button></td>
+          <td><span class="saved">● Tersimpan</span></td>
+          <td class="action-cell">
+            <div class="row-actions">
+              <a href="{{ url_for('view_report', report_id=row['id']) }}" aria-label="Lihat laporan" title="View">◉</a>
+              <a href="{{ url_for('edit_report', report_id=row['id']) }}" aria-label="Edit laporan" title="Edit">✎</a>
+              <form method="post" action="{{ url_for('delete_report', report_id=row['id']) }}" onsubmit="return confirm('Hapus laporan ini secara permanen? File PDF sumber juga akan dihapus.')">
+                <button type="submit" aria-label="Hapus laporan" title="Delete">⌫</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        <tr class="summary-row" id="summary-{{ row['id'] }}" hidden>
+          <td colspan="8">
+            <div class="summary-panel">
+              <div class="summary-document">
+                <span class="document-icon">PDF</span>
+                <div><small>Dokumen sumber</small><strong>{{ row['source_file'].split('_', 1)[1] if row['source_file'] and '_' in row['source_file'] else (row['source_file'] or 'Tidak tersedia') }}</strong><p>Report ID #{{ row['id'] }} · Ditambahkan {{ row['created_at'] }}</p></div>
+              </div>
+              {% if row['source_file'] %}
+                <a class="pdf-view-button" href="{{ url_for('view_report_file', report_id=row['id']) }}" target="_blank" rel="noopener"><span>▤</span> Lihat file PDF</a>
+              {% else %}
+                <span class="pdf-unavailable">File tidak tersedia</span>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="8" class="empty-table">Tidak ada laporan yang sesuai. {% if query or selected_unit %}<a href="{{ url_for('dashboard') }}">Hapus filter.</a>{% else %}<a href="{{ url_for('upload') }}">Unggah PDF pertama Anda.</a>{% endif %}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if filtered_count > 0 %}
+  <div class="pagination-bar">
+    <p>Menampilkan {{ (page - 1) * 5 + 1 }}–{{ [page * 5, filtered_count]|min }} dari {{ filtered_count }} data</p>
+    <nav class="pagination" aria-label="Navigasi halaman">
+      {% if page > 1 %}<a href="{{ url_for('dashboard', page=page-1, q=query, unit=selected_unit) }}" aria-label="Halaman sebelumnya">‹</a>{% else %}<span class="disabled">‹</span>{% endif %}
+      {% for number in range(1, total_pages + 1) %}
+        {% if number == page %}<span class="current">{{ number }}</span>{% else %}<a href="{{ url_for('dashboard', page=number, q=query, unit=selected_unit) }}">{{ number }}</a>{% endif %}
+      {% endfor %}
+      {% if page < total_pages %}<a href="{{ url_for('dashboard', page=page+1, q=query, unit=selected_unit) }}" aria-label="Halaman berikutnya">›</a>{% else %}<span class="disabled">›</span>{% endif %}
+    </nav>
+  </div>
+  {% endif %}
+</section>
+<script>
+document.querySelectorAll('.summary-toggle').forEach(button => {
+  button.addEventListener('click', () => {
+    const panel = document.getElementById(button.dataset.summary);
+    const isOpen = button.getAttribute('aria-expanded') === 'true';
+    document.querySelectorAll('.summary-toggle[aria-expanded="true"]').forEach(openButton => {
+      if (openButton !== button) {
+        document.getElementById(openButton.dataset.summary).hidden = true;
+        openButton.setAttribute('aria-expanded', 'false');
+        openButton.closest('tr').classList.remove('is-expanded');
+      }
+    });
+    panel.hidden = isOpen;
+    button.setAttribute('aria-expanded', String(!isOpen));
+    button.closest('tr').classList.toggle('is-expanded', !isOpen);
+  });
+});
+</script>
+{% endblock %}

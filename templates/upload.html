@@ -1,0 +1,6 @@
+{% extends 'base.html' %}{% block title %}Input report · OpsInsight{% endblock %}{% block heading %}Input report{% endblock %}{% block content %}
+<section class="page-intro"><h2>Mulai dari file laporan Anda</h2><p>Unggah report mingguan dalam format PDF. Sistem akan membaca isi dokumen dan menyiapkan field untuk divalidasi.</p></section>
+<form class="dropzone" method="post" enctype="multipart/form-data" id="upload-form"><input id="report" name="report" type="file" accept="application/pdf" required><div class="pdf-icon">PDF</div><h3>Tarik file PDF ke sini</h3><p>atau klik untuk memilih file dari komputer</p><span class="file-name" id="file-name">Maksimal ukuran file 16 MB</span></form>
+<div class="how"><div><b>01</b><span>Upload report PDF</span></div><i></i><div><b>02</b><span>Ekstraksi otomatis</span></div><i></i><div><b>03</b><span>Validasi & simpan</span></div></div>
+<script>const input=document.getElementById('report'), form=document.getElementById('upload-form'), name=document.getElementById('file-name'); input.onchange=()=>{if(input.files[0]){name.textContent=input.files[0].name;form.submit()}};</script>
+{% endblock %}
